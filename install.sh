@@ -143,10 +143,18 @@ deploy_docker() {
   mkdir -p "$DATA_DIR"; chown -R 1000:1000 "$DATA_DIR"; chmod 700 "$DATA_DIR"
   info "Najenga na kuwasha container..."
   (cd "$APP_DIR" && $DC up -d --build) || die "docker compose imeshindwa"
-  sleep 4
-  if [ "$(docker inspect -f '{{.State.Running}}' "$SERVICE" 2>/dev/null)" != "true" ]; then
-    (cd "$APP_DIR" && $DC logs --tail 30) || true
-    die "Container haiendeshi. Angalia logs hapo juu."
+  info "Nasubiri bot ianze..."
+  local up=0 logs st
+  for _ in $(seq 1 40); do
+    logs="$(docker logs "$SERVICE" 2>&1 || true)"
+    case "$logs" in *"Application started"*) up=1; break ;; esac
+    st="$(docker inspect -f '{{.State.Status}}' "$SERVICE" 2>/dev/null || echo missing)"
+    [ "$st" = "running" ] || break          # exited / restarting = crashed on startup
+    sleep 1
+  done
+  if [ "$up" != 1 ]; then
+    (cd "$APP_DIR" && $DC logs --tail 40) || true
+    die "Bot haikuanza. Angalia logs hapo juu (token/SECRET_KEY/mafaili ya src?)."
   fi
   ok "Bot inaendesha (docker)"
   MANAGE="cd $APP_DIR && $DC logs -f        # logs
@@ -200,9 +208,19 @@ UNIT
 systemctl restart $SERVICE      # restart"
 }
 
+# ---------- preflight ----------
+preflight() {
+  local f need="src/main.py src/storage.py src/config.py src/core/router.py src/services/cloudfront.py src/handlers/__init__.py requirements.txt"
+  [ "$MODE" = "docker" ] && need="$need Dockerfile docker-compose.yml"
+  for f in $need; do
+    [ -f "$APP_DIR/$f" ] || die "Faili '$f' halipo. Upload ya GitHub haikukamilika: angalia folda src/ (core, services, handlers) kwenye repo."
+  done
+}
+
 # ---------- run ----------
 MANAGE=""
 echo; info "CloudFront Telegram Manager · mode: $MODE"
+preflight
 configure
 if [ "$MODE" = "docker" ]; then deploy_docker; else deploy_systemd; fi
 

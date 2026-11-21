@@ -1,0 +1,27 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "CloudFrontAcmWafMetrics",
+      "Effect": "Allow",
+      "Action": [
+        "cloudfront:ListDistributions",
+        "cloudfront:GetDistribution",
+        "cloudfront:GetDistributionConfig",
+        "cloudfront:CreateDistribution",
+        "cloudfront:UpdateDistribution",
+        "cloudfront:DeleteDistribution",
+        "cloudfront:CreateInvalidation",
+        "cloudfront:ListInvalidations",
+        "acm:ListCertificates",
+        "acm:RequestCertificate",
+        "acm:DescribeCertificate",
+        "wafv2:ListWebACLs",
+        "cloudwatch:GetMetricStatistics",
+        "freetier:GetFreeTierUsage",
+        "account:GetAccountInformation"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
